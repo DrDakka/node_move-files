@@ -1,6 +1,10 @@
 /* eslint-disable no-console */
 'use strict';
 
+/* I am not mentor to write tests for a plain task with README,
+plz notify mentor if you have any suggestions about tests.
+Also, writing tests is going out of the README scope. */
+
 const fs = require('fs');
 const path = require('path');
 
