@@ -4,11 +4,23 @@
 const fs = require('fs');
 const path = require('path');
 
+function fail(msg) {
+  console.error(msg);
+}
+
+function isExistingDir(p) {
+  return fs.existsSync(p) && fs.statSync(p).isDirectory();
+}
+
+function isExistingFile(p) {
+  return fs.existsSync(p) && fs.statSync(p).isFile();
+}
+
 function app() {
   const args = process.argv.slice(2);
 
   if (args.length !== 2) {
-    console.error('Expected 2 arguments');
+    fail('Expected 2 arguments');
 
     return;
   }
@@ -19,60 +31,69 @@ function app() {
     return;
   }
 
-  try {
-    const st = fs.statSync(src);
+  if (!fs.existsSync(src)) {
+    fail(`Source file does not exist: ${src}`);
 
-    if (!st.isFile()) {
-      console.error(`Source must be a file: ${src}`);
+    return;
+  }
 
-      return;
-    }
-  } catch {
-    console.error(`Source file does not exist: ${src}`);
+  if (!fs.statSync(src).isFile()) {
+    fail(`Source must be a file: ${src}`);
 
     return;
   }
 
   const srcBase = path.basename(src);
 
-  try {
-    const dstSt = fs.statSync(dest);
+  if (dest.endsWith('/')) {
+    if (!isExistingDir(dest)) {
+      fail('Wrong destination directory');
 
-    if (dstSt.isDirectory()) {
+      return;
+    }
+
+    const finalDest = path.join(dest, srcBase);
+
+    if (isExistingFile(finalDest)) {
+      fs.unlinkSync(finalDest);
+    }
+
+    fs.renameSync(src, finalDest);
+
+    return;
+  }
+
+  if (fs.existsSync(dest)) {
+    const dstStat = fs.statSync(dest);
+
+    if (dstStat.isDirectory()) {
       const finalDest = path.join(dest, srcBase);
+
+      if (isExistingFile(finalDest)) {
+        fs.unlinkSync(finalDest);
+      }
 
       fs.renameSync(src, finalDest);
 
       return;
     }
 
-    try {
+    if (dstStat.isFile()) {
       fs.unlinkSync(dest);
-    } catch {}
+      fs.renameSync(src, dest);
 
-    fs.renameSync(src, dest);
+      return;
+    }
 
-    return;
-  } catch {}
-
-  if (dest.endsWith('/')) {
-    console.error('Wrong destination directory');
+    fail('Wrong destination directory');
 
     return;
   }
 
   const parent = path.dirname(dest);
 
-  try {
-    const parentSt = fs.statSync(parent);
-
-    if (!parentSt.isDirectory()) {
-      console.error('Wrong destination directory');
-
-      return;
-    }
-  } catch {
-    console.error('Wrong destination directory');
+  if (!isExistingDir(parent)) {
+    fail('Wrong destination directory');
 
     return;
   }
